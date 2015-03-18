@@ -13,26 +13,17 @@ import java.util.Queue;
  */
 
 /**
- * DOCUMENT ME!
+ * DirectedGraph class is used to generate a Directed Graph based on a List of objects of Type T.
+ * Dependencies between objects are created based on compareTo so Class of Type T must implement Comparable<T>
+ * Topological Sorting will only correctly work if the directed graph generated is a Directed Acyclic Graph.
  *
  * @author VicramU
  */
 public class DirectedGraph<T extends Comparable<T>> {
 
-	/*
-	 **************************************** PUBLIC FIELDS ************************************************************
-	 */
-
-	/*
-	 **************************************** PRIVATE FIELDS ***********************************************************
-	 */
 	private List<Node<T>> nodeList = null;
 	
 	private final Map<Node<T>, LinkedList<Node<T>>> graph = new HashMap<Node<T>, LinkedList<Node<T>>>();
-
-	/*
-	 **************************************** CONSTRUCTORS *************************************************************
-	 */
 
 	/**
 	 * Creates a new instance of DirectedGraph.
@@ -42,10 +33,6 @@ public class DirectedGraph<T extends Comparable<T>> {
 		initialzeGraph(unsortedList);
 		buildGraph(nodeList);
 	}
-
-	/*
-	 **************************************** PUBLIC METHODS ***********************************************************
-	 */
 
 	public boolean addNode(T obj){
 		Node<T> node = new Node<T>(obj);
@@ -65,9 +52,14 @@ public class DirectedGraph<T extends Comparable<T>> {
 	}
 	
 	public List<T> topologicalSort(){
+		
+		Node<T> tempNode = null;
+		Map<Node<T>, LinkedList<Node<T>>> tempGraph = null;
+		Iterator<Map.Entry<Node<T>, LinkedList<Node<T>>>> iterator = null;
+		
 		List<T> sortedList = new ArrayList<T>();
 		Queue<Node<T>> zeroIncomingEdgeQueue = new LinkedList<Node<T>>();
-		Map<Node<T>, LinkedList<Node<T>>> tempGraph = null;
+		
 		if(graph == null || nodeList == null || graph.isEmpty() || nodeList.isEmpty() || graph.size() != nodeList.size()){
 			return sortedList;
 		}
@@ -75,11 +67,10 @@ public class DirectedGraph<T extends Comparable<T>> {
 		tempGraph = new HashMap<Node<T>, LinkedList<Node<T>>>(graph);
 		
 		//put any node with no edges on the sorted list first
-		Iterator<Map.Entry<Node<T>, LinkedList<Node<T>>>> iterator = tempGraph.entrySet().iterator();
-		Node<T> tempNode = null;
+		iterator = tempGraph.entrySet().iterator();
+		
 		
 		while (iterator.hasNext()) {
-			//Map.Entry<Node<T>, LinkedList<Node<T>>> entry = iterator.next();
 			tempNode = iterator.next().getKey();
 			
 			if(tempNode != null && tempNode.hasNoEdges()){
@@ -94,10 +85,10 @@ public class DirectedGraph<T extends Comparable<T>> {
 			//put 0 incomingEdge nodes in queue
 			iterator = tempGraph.entrySet().iterator();
 			while (iterator.hasNext()) {
-				//Map.Entry<Node<T>, LinkedList<Node<T>>> entry = iterator.next();
 				tempNode = iterator.next().getKey();
 				
 				if(tempNode != null && tempNode.getIncomingEdgeCount() == 0){
+					//System.out.println("ADDED TO QUEUE: " + tempNode.getObject().toString());
 					zeroIncomingEdgeQueue.add(tempNode);
 					iterator.remove();
 				}
@@ -105,29 +96,35 @@ public class DirectedGraph<T extends Comparable<T>> {
 			
 			//dequeue
 			tempNode = zeroIncomingEdgeQueue.poll();
+			//System.out.println("TAKEN FROM QUEUE: " + tempNode.getObject().toString());
 			if(tempNode != null){
-				sortedList.add(tempNode.getObject());
+				/*
+				if(graph.containsKey(tempNode)){
+					System.out.println("CONTAINED: " + tempNode.getObject().toString());
+				}
+				else{
+					System.out.println("NOT CONTAINED: " + tempNode.getObject().toString());
+				}*/
 				//decrease incoming edge count from all dependent nodes
-				for(Node<T> dependentNode : tempGraph.get(tempNode)){
+				for(Node<T> dependentNode : graph.get(tempNode)){
 					if(dependentNode != null){
 						dependentNode.decreaseIncomingEdgeCount();
 					}
 				}
+				sortedList.add(tempNode.getObject());
+				tempGraph.remove(tempNode);
+				//System.out.println("REMOVED FROM GRAPH: " + tempNode.getObject().toString());
 			}
 			else if(tempNode == null && tempGraph.size() > 0){
 				//there is a cyclical dependency...return null or throw exception?
 				//LOG something
 				return null;
 			}
-			
 			i--;
 		}
 	
 		return sortedList;
 	}
-	/*
-	 **************************************** PRIVATE METHODS **********************************************************
-	 */
 	
 	private boolean initialzeGraph(List<T> list){
 
@@ -143,8 +140,8 @@ public class DirectedGraph<T extends Comparable<T>> {
 	}
 	
 	/**
-	 * @param graph2
-	 * @param nodeList2
+	 * 
+	 * @param nodeList
 	 */
 	private boolean buildGraph(List<Node<T>> nodeList) {
 		if(graph == null || nodeList == null || graph.isEmpty() || nodeList.isEmpty() || graph.size() != nodeList.size()){
@@ -167,7 +164,8 @@ public class DirectedGraph<T extends Comparable<T>> {
 
 	
 	/**
-	 * DOCUMENT ME!
+	 * Inner class Node contains the object to compare along with counters for incoming 
+	 * and outgoing edges for itself.
 	 *
 	 * @author VicramU
 	 */
